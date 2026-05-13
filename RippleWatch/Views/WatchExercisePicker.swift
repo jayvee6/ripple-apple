@@ -4,17 +4,23 @@ import RippleCore
 /// Vertical list of breathing exercises. Crown scrolls; tap to start.
 struct WatchExercisePicker: View {
     let onPick: (BreathExercise) -> Void
+    @Environment(WatchAppState.self) private var appState
 
     var body: some View {
+        @Bindable var appState = appState
         ScrollView {
             VStack(alignment: .leading, spacing: 4) {
-                Text("BREATHE")
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(3.2)
-                    .foregroundStyle(Color.white.opacity(0.45))
-                    .padding(.horizontal, 8)
-                    .padding(.top, 6)
-                    .padding(.bottom, 4)
+                HStack(alignment: .center) {
+                    Text("BREATHE")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(3.2)
+                        .foregroundStyle(Color.white.opacity(0.45))
+                    Spacer()
+                    WatchMuteToggle(isMuted: $appState.audioMuted)
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 6)
+                .padding(.bottom, 4)
 
                 ForEach(BreathExercise.allCases) { ex in
                     Button { onPick(ex) } label: {
@@ -25,6 +31,30 @@ struct WatchExercisePicker: View {
             }
             .padding(.horizontal, 4)
         }
+    }
+}
+
+private struct WatchMuteToggle: View {
+    @Binding var isMuted: Bool
+
+    var body: some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.18)) { isMuted.toggle() }
+        } label: {
+            Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(
+                    isMuted
+                      ? Color.white.opacity(0.50)
+                      : Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.85)
+                )
+                .frame(width: 26, height: 26)
+                .background(
+                    Circle().fill(Color.white.opacity(0.06))
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isMuted ? "Unmute bowl chimes" : "Mute bowl chimes")
     }
 }
 
@@ -62,4 +92,5 @@ private struct WatchExerciseRow: View {
 
 #Preview {
     WatchExercisePicker { _ in }
+        .environment(WatchAppState())
 }

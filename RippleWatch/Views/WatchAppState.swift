@@ -11,6 +11,16 @@ final class WatchAppState {
 
     var screen: Screen = .picker
 
+    /// Silent mode — mutes the bowl chimes; haptics still fire.
+    var audioMuted: Bool {
+        didSet { UserDefaults.standard.set(audioMuted, forKey: Self.audioMutedKey) }
+    }
+    private static let audioMutedKey = "ripple.audioMuted"
+
+    init() {
+        self.audioMuted = UserDefaults.standard.bool(forKey: Self.audioMutedKey)
+    }
+
     func startSession(_ exercise: BreathExercise) {
         screen = .session(SessionConfig(exercise))
     }

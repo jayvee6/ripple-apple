@@ -11,6 +11,7 @@ struct WatchSessionView: View {
     let config: SessionConfig
     let onComplete: () -> Void
 
+    @Environment(WatchAppState.self) private var appState
     @State private var currentPhase: BreathPhase?
     @State private var cycleIndex: Int = 0
     @State private var circleScale: CGFloat = 0.55
@@ -122,13 +123,15 @@ struct WatchSessionView: View {
     @MainActor
     private func startPhase(_ phase: BreathPhase) {
         currentPhase = phase
-        // Bowl + haptic
-        switch phase.kind {
-        case .inhale:    bowls.inhale(strength: 0.7)
-        case .inhaleTop: bowls.inhale(strength: 0.5)
-        case .holdFull:  bowls.holdFull(strength: 0.55)
-        case .holdEmpty: bowls.holdEmpty(strength: 0.4)
-        case .exhale:    bowls.exhale(strength: 0.75)
+        // Bowl (unless muted), haptic (always)
+        if !appState.audioMuted {
+            switch phase.kind {
+            case .inhale:    bowls.inhale(strength: 0.7)
+            case .inhaleTop: bowls.inhale(strength: 0.5)
+            case .holdFull:  bowls.holdFull(strength: 0.55)
+            case .holdEmpty: bowls.holdEmpty(strength: 0.4)
+            case .exhale:    bowls.exhale(strength: 0.75)
+            }
         }
         haptics.fire(phase.kind)
         // Backup WKHaptic for cases where CHHapticEngine isn't available
