@@ -164,13 +164,16 @@ struct SessionView: View {
     @MainActor
     private func startPhase(_ phase: BreathPhase) {
         currentPhase = phase
-        // Fire the bowl + haptic + water pulse
-        switch phase.kind {
-        case .inhale:    bowls.inhale()
-        case .inhaleTop: bowls.inhale(strength: 0.6)
-        case .holdFull:  bowls.holdFull()
-        case .holdEmpty: bowls.holdEmpty()
-        case .exhale:    bowls.exhale()
+        // Fire the bowl (unless muted), haptic (always — silent mode only
+        // mutes audio, haptics stay so phase cues remain available), water pulse.
+        if !appState.audioMuted {
+            switch phase.kind {
+            case .inhale:    bowls.inhale()
+            case .inhaleTop: bowls.inhale(strength: 0.6)
+            case .holdFull:  bowls.holdFull()
+            case .holdEmpty: bowls.holdEmpty()
+            case .exhale:    bowls.exhale()
+            }
         }
         haptics.fire(phase.kind)
         appState.pulseTrigger += 1

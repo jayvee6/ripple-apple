@@ -13,6 +13,19 @@ final class AppState {
 
     var screen: Screen = .picker
 
+    /// Silent mode — when true, the bowl chimes are muted. Haptics still
+    /// fire (subtle, doesn't disturb anyone nearby; keeps phase cues
+    /// available for users who toggle this on for context like meetings).
+    /// Persisted to UserDefaults.
+    var audioMuted: Bool {
+        didSet { UserDefaults.standard.set(audioMuted, forKey: Self.audioMutedKey) }
+    }
+    private static let audioMutedKey = "ripple.audioMuted"
+
+    init() {
+        self.audioMuted = UserDefaults.standard.bool(forKey: Self.audioMutedKey)
+    }
+
     /// Pulse trigger counter — SessionView increments, RootView's water view observes.
     /// Using an integer counter (rather than a Bool) lets repeated triggers fire
     /// even when consecutive values would otherwise be equal.

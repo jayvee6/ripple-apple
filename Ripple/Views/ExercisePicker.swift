@@ -5,8 +5,10 @@ import RippleCore
 /// viewport, 2×2 grid of exercise cards. Mirrors the web app's selector.
 struct ExercisePicker: View {
     let onPick: (BreathExercise) -> Void
+    @Environment(AppState.self) private var appState
 
     var body: some View {
+        @Bindable var appState = appState
         ZStack {
             // The single glass plane covering the viewport. backdrop blur
             // does the work; the stone behind it reads as a soft glow.
@@ -60,7 +62,45 @@ struct ExercisePicker: View {
                 .frame(maxWidth: 500)
                 .padding(.horizontal, 20)
             }
+
+            // Mute toggle — top-right corner. Subtle, persists across sessions.
+            VStack {
+                HStack {
+                    Spacer()
+                    MuteToggle(isMuted: $appState.audioMuted)
+                        .padding(.top, 12)
+                        .padding(.trailing, 18)
+                }
+                Spacer()
+            }
         }
+    }
+}
+
+private struct MuteToggle: View {
+    @Binding var isMuted: Bool
+
+    var body: some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.18)) {
+                isMuted.toggle()
+            }
+        } label: {
+            Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(
+                    isMuted
+                      ? Color.white.opacity(0.45)
+                      : Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.85)
+                )
+                .frame(width: 38, height: 38)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(
+                    Circle().stroke(Color.white.opacity(0.10), lineWidth: 0.5)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isMuted ? "Unmute bowl chimes" : "Mute bowl chimes")
     }
 }
 
@@ -118,5 +158,6 @@ private struct ExerciseCard: View {
     ZStack {
         Color(red: 0.020, green: 0.035, blue: 0.072).ignoresSafeArea()
         ExercisePicker { _ in }
+            .environment(AppState())
     }
 }
