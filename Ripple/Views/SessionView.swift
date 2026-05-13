@@ -32,9 +32,12 @@ struct SessionView: View {
             // Water is rendered by RootView — we just write to its shared
             // pulse trigger when the bowls strike.
 
-            // The stone in the center
+            // The stone — Liquid Glass orb centered to the FULL screen (not
+            // safe area) so it lines up with the water pulse origin. The
+            // .ignoresSafeArea() on this wrapper ensures the geometric
+            // center matches the MTKView's pulse center exactly.
             ZStack {
-                // Soft halo behind the stone
+                // Soft halo behind the orb
                 Circle()
                     .fill(
                         RadialGradient(
@@ -51,46 +54,17 @@ struct SessionView: View {
                     .blur(radius: 24)
                     .opacity(haloOpacity)
 
-                // The stone disc
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            stops: [
-                                .init(color: Color(red: 0.765, green: 0.863, blue: 0.902).opacity(0.55), location: 0.0),
-                                .init(color: Color(red: 0.471, green: 0.647, blue: 0.725).opacity(0.85), location: 0.12),
-                                .init(color: Color(red: 0.196, green: 0.392, blue: 0.510).opacity(0.96), location: 0.38),
-                                .init(color: Color(red: 0.078, green: 0.216, blue: 0.333),               location: 0.70),
-                                .init(color: Color(red: 0.031, green: 0.118, blue: 0.216),               location: 1.0),
-                            ],
-                            center: UnitPoint(x: 0.38, y: 0.30),
-                            startRadius: 0,
-                            endRadius: 240
-                        )
-                    )
+                // The orb — Liquid Glass refracting the rippling water behind it
+                LiquidGlassOrb()
                     .frame(width: 220, height: 220)
-                    .overlay(
-                        // Meniscus highlight
-                        Ellipse()
-                            .fill(
-                                RadialGradient(
-                                    colors: [Color.white.opacity(0.55), Color.white.opacity(0.0)],
-                                    center: .center,
-                                    startRadius: 0,
-                                    endRadius: 50
-                                )
-                            )
-                            .frame(width: 80, height: 50)
-                            .blur(radius: 6)
-                            .offset(x: -20, y: -50)
-                    )
-                    .shadow(color: .black.opacity(0.65), radius: 18, x: 0, y: 14)
-                    .shadow(color: Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.20), radius: 18)
             }
             .scaleEffect(stoneScale)
             .opacity(stoneOpacity)
             .animation(.easeInOut(duration: 0.6), value: stoneOpacity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
 
-            // 3. HUD
+            // HUD
             VStack {
                 Spacer().frame(height: 80)
                 VStack(spacing: 18) {
