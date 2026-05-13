@@ -1,9 +1,15 @@
 import SwiftUI
 
 /// A Liquid Glass orb — the iOS 26 `.glassEffect(_:in:)` material applied to
-/// a Circle shape. Refracts the rippling water behind it for that
-/// "glass marble dropped in a pool" feel. Layers a subtle highlight on top
-/// so the orb reads as a sphere, not a flat circle.
+/// a Circle shape. The Liquid Glass material does the heavy lifting for
+/// refraction and natural specular response; on top of that we lay just a
+/// pair of *thin elongated specular pills* mimicking softbox slat lights
+/// (the studiojoesavers/Mercury aesthetic) plus a hairline rim line.
+///
+/// Specular philosophy borrowed from `StudioJoeSavers/.../Mercury.metal`:
+/// real shiny glass mostly shows refracted background, with elongated
+/// highlight pills wrapping the curves. The "chrome marble" look is the
+/// failure mode; this aims for "polished crystal."
 struct LiquidGlassOrb: View {
     /// Tint color for the glass. Aqua/cyan to match ripple's accent palette.
     var tint: Color = Color(red: 0.471, green: 0.765, blue: 0.843)
@@ -14,66 +20,62 @@ struct LiquidGlassOrb: View {
             Circle()
                 .fill(Color.clear)
                 .glassEffect(
-                    .regular.tint(tint.opacity(0.22)),
+                    .regular.tint(tint.opacity(0.18)),
                     in: Circle()
                 )
 
-            // 2. Soft inner highlight — gives the orb spherical depth
-            Circle()
+            // 2. Primary highlight pill — narrow elongated reflection of an
+            //    imagined upper-left softbox. Thin Gaussian capsule, soft.
+            Capsule()
                 .fill(
-                    RadialGradient(
+                    LinearGradient(
                         stops: [
-                            .init(color: Color.white.opacity(0.32), location: 0.0),
-                            .init(color: Color.white.opacity(0.0),  location: 0.55),
+                            .init(color: Color.white.opacity(0.0),  location: 0.0),
+                            .init(color: Color.white.opacity(0.32), location: 0.5),
+                            .init(color: Color.white.opacity(0.0),  location: 1.0),
                         ],
-                        center: UnitPoint(x: 0.36, y: 0.30),
-                        startRadius: 0,
-                        endRadius: 110
+                        startPoint: .top, endPoint: .bottom
                     )
                 )
+                .frame(width: 6, height: 56)
+                .rotationEffect(.degrees(-20))
+                .blur(radius: 3)
+                .offset(x: -36, y: -42)
                 .blendMode(.plusLighter)
                 .allowsHitTesting(false)
 
-            // 3. Crisp meniscus highlight — top-left, like overhead light
-            //    catching the top of a wet sphere
-            Ellipse()
-                .fill(
-                    RadialGradient(
-                        colors: [Color.white.opacity(0.65), Color.white.opacity(0.0)],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 50
-                    )
-                )
-                .frame(width: 70, height: 42)
-                .blur(radius: 4)
-                .offset(x: -34, y: -50)
+            // 3. Secondary tiny highlight — a smaller second pill for a
+            //    multi-light-source feel, lower right of the orb's upper.
+            Capsule()
+                .fill(Color.white.opacity(0.18))
+                .frame(width: 3, height: 22)
+                .rotationEffect(.degrees(-12))
+                .blur(radius: 2)
+                .offset(x: -8, y: -36)
                 .blendMode(.plusLighter)
                 .allowsHitTesting(false)
 
-            // 4. Rim — subtle white border so the sphere has definition
-            //    against the bright wave crests
+            // 4. Rim — hairline border for definition against bright wave crests
             Circle()
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.42),
-                            Color.white.opacity(0.06),
-                            Color.black.opacity(0.18),
+                            Color.white.opacity(0.22),
+                            Color.white.opacity(0.04),
+                            Color.black.opacity(0.20),
                         ],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ),
-                    lineWidth: 0.75
+                    lineWidth: 0.5
                 )
         }
-        .shadow(color: .black.opacity(0.55), radius: 22, x: 0, y: 16)
-        .shadow(color: tint.opacity(0.30), radius: 24, x: 0, y: 0)
+        .shadow(color: .black.opacity(0.50), radius: 22, x: 0, y: 16)
+        .shadow(color: tint.opacity(0.22), radius: 24, x: 0, y: 0)
     }
 }
 
 #Preview {
     ZStack {
-        // Fake water for the preview
         LinearGradient(
             colors: [
                 Color(red: 0.024, green: 0.078, blue: 0.157),
