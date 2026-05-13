@@ -19,6 +19,7 @@ struct SessionView: View {
     @State private var hudOpacity: Double = 0.0
     @State private var sessionTask: Task<Void, Never>?
     @State private var countdownTask: Task<Void, Never>?
+    @State private var sessionStartedAt: Date?
 
     private let bowls = BowlAudioEngine()
     private let haptics = HapticsManager()
@@ -120,6 +121,10 @@ struct SessionView: View {
     private func startSession() {
         try? bowls.prepare()
         haptics.prepare()
+        sessionStartedAt = Date()
+        // Request HealthKit auth on first session; subsequent calls are cheap no-ops
+        Task { try? await MindfulnessLogger.shared.requestAuthorization() }
+
         // Soft fade-in of HUD after a beat
         Task {
             try? await Task.sleep(nanoseconds: 400_000_000)
@@ -148,6 +153,15 @@ struct SessionView: View {
         case .cycleEnded:
             break
         case .sessionEnded:
+            // Log to HealthKit as a mindful session
+            if let start = sessionStartedAt {
+                Task {
+                    await MindfulnessLogger.shared.logSession(
+                        start: start,
+                        duration: config.totalSeconds
+                    )
+                }
+            }
             // Fade stone + HUD, then defer to parent
             withAnimation(.easeInOut(duration: 0.8)) {
                 stoneOpacity = 0

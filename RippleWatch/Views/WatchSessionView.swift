@@ -19,6 +19,7 @@ struct WatchSessionView: View {
     @State private var countdown: Int = 0
     @State private var sessionTask: Task<Void, Never>?
     @State private var countdownTask: Task<Void, Never>?
+    @State private var sessionStartedAt: Date?
 
     private let bowls = BowlAudioEngine()
     private let haptics = HapticsManager()
@@ -85,6 +86,8 @@ struct WatchSessionView: View {
     private func startSession() {
         try? bowls.prepare()
         haptics.prepare()
+        sessionStartedAt = Date()
+        Task { try? await MindfulnessLogger.shared.requestAuthorization() }
 
         let runner = PhaseRunner(config: config)
         sessionTask = Task { @MainActor in
@@ -108,6 +111,15 @@ struct WatchSessionView: View {
         case .cycleEnded:
             break
         case .sessionEnded:
+            // Log to HealthKit
+            if let start = sessionStartedAt {
+                Task {
+                    await MindfulnessLogger.shared.logSession(
+                        start: start,
+                        duration: config.totalSeconds
+                    )
+                }
+            }
             // Quick fade-out — watch session is short, no curtain ceremony
             withAnimation(.easeInOut(duration: 0.6)) {
                 circleScale = Self.scaleEmpty

@@ -11,14 +11,49 @@ final class WatchAppState {
 
     var screen: Screen = .picker
 
-    /// Silent mode — mutes the bowl chimes; haptics still fire.
+    /// Silent mode — mutes bowl chimes; haptics still fire.
+    /// Persisted locally and synced to the paired iPhone.
     var audioMuted: Bool {
-        didSet { UserDefaults.standard.set(audioMuted, forKey: Self.audioMutedKey) }
+        didSet {
+            UserDefaults.standard.set(audioMuted, forKey: Self.audioMutedKey)
+            if !applyingRemoteContext {
+                pushSync()
+            }
+        }
     }
     private static let audioMutedKey = "ripple.audioMuted"
+    private var applyingRemoteContext = false
 
     init() {
-        self.audioMuted = UserDefaults.standard.bool(forKey: Self.audioMutedKey)
+        let stored = UserDefaults.standard.bool(forKey: Self.audioMutedKey)
+        self.audioMuted = stored
+
+        // Hydrate from any context the phone already pushed.
+        let initial = RippleConnectivity.shared.latestReceivedContext
+        if let remoteMute = initial[RippleSyncKey.audioMuted] as? Bool, remoteMute != stored {
+            applyingRemoteContext = true
+            self.audioMuted = remoteMute
+            applyingRemoteContext = false
+        }
+
+        // Live updates from the phone.
+        RippleConnectivity.shared.onContextReceived = { [weak self] ctx in
+            self?.apply(remoteContext: ctx)
+        }
+    }
+
+    private func apply(remoteContext: [String: Any]) {
+        applyingRemoteContext = true
+        defer { applyingRemoteContext = false }
+        if let m = remoteContext[RippleSyncKey.audioMuted] as? Bool, m != audioMuted {
+            audioMuted = m
+        }
+    }
+
+    private func pushSync() {
+        RippleConnectivity.shared.sync([
+            RippleSyncKey.audioMuted: audioMuted,
+        ])
     }
 
     func startSession(_ exercise: BreathExercise) {

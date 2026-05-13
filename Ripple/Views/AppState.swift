@@ -14,27 +14,60 @@ final class AppState {
     var screen: Screen = .picker
 
     /// Silent mode — when true, the bowl chimes are muted. Haptics still
-    /// fire (subtle, doesn't disturb anyone nearby; keeps phase cues
-    /// available for users who toggle this on for context like meetings).
-    /// Persisted to UserDefaults.
+    /// fire. Persisted to UserDefaults and synced to the paired watch.
     var audioMuted: Bool {
-        didSet { UserDefaults.standard.set(audioMuted, forKey: Self.audioMutedKey) }
+        didSet {
+            UserDefaults.standard.set(audioMuted, forKey: Self.audioMutedKey)
+            if !applyingRemoteContext {
+                pushSync()
+            }
+        }
     }
     private static let audioMutedKey = "ripple.audioMuted"
 
-    init() {
-        self.audioMuted = UserDefaults.standard.bool(forKey: Self.audioMutedKey)
-    }
+    /// Guards the didSet hooks from pushing back to the peer when *we* are
+    /// the one applying an incoming context change — avoids feedback loops.
+    private var applyingRemoteContext = false
 
     /// Pulse trigger counter — SessionView increments, RootView's water view observes.
-    /// Using an integer counter (rather than a Bool) lets repeated triggers fire
-    /// even when consecutive values would otherwise be equal.
     var pulseTrigger: Int = 0
     var pulseIntensity: Float = 1.0
 
     /// Curtain opacity for the fade-to-black-and-return cycle.
-    /// Range 0...1. AffirmationView animates this up; RootView animates it down.
     var curtainOpacity: Double = 0.0
+
+    init() {
+        let stored = UserDefaults.standard.bool(forKey: Self.audioMutedKey)
+        self.audioMuted = stored
+
+        // Hydrate from any context the watch already pushed before we
+        // attached our handler.
+        let initial = RippleConnectivity.shared.latestReceivedContext
+        if let remoteMute = initial[RippleSyncKey.audioMuted] as? Bool, remoteMute != stored {
+            applyingRemoteContext = true
+            self.audioMuted = remoteMute
+            applyingRemoteContext = false
+        }
+
+        // Subscribe to live updates from the watch.
+        RippleConnectivity.shared.onContextReceived = { [weak self] ctx in
+            self?.apply(remoteContext: ctx)
+        }
+    }
+
+    private func apply(remoteContext: [String: Any]) {
+        applyingRemoteContext = true
+        defer { applyingRemoteContext = false }
+        if let m = remoteContext[RippleSyncKey.audioMuted] as? Bool, m != audioMuted {
+            audioMuted = m
+        }
+    }
+
+    private func pushSync() {
+        RippleConnectivity.shared.sync([
+            RippleSyncKey.audioMuted: audioMuted,
+        ])
+    }
 
     /// Pick an exercise and transition into a session.
     func startSession(_ exercise: BreathExercise) {
@@ -47,7 +80,7 @@ final class AppState {
         screen = .outro(config, affirmation: affirmation)
     }
 
-    /// Reset back to picker (slow fade-to-black + return handled by the view).
+    /// Reset back to picker.
     func returnToPicker() {
         screen = .picker
     }
