@@ -37,24 +37,14 @@ struct SessionView: View {
             // .ignoresSafeArea() on this wrapper ensures the geometric
             // center matches the MTKView's pulse center exactly.
             ZStack {
-                // Soft halo behind the orb
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.45),
-                                Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.0),
-                            ],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 220
-                        )
-                    )
-                    .frame(width: 340, height: 340)
-                    .blur(radius: 24)
-                    .opacity(haloOpacity)
+                // Caustic — concentrated focus of light on the water under
+                // the orb. Drawn behind the orb so it appears the orb is
+                // floating above it. Offset slightly down for the
+                // "sitting just above the water" depth cue.
+                OrbCaustic(intensity: haloOpacity)
+                    .offset(y: 16)
 
-                // The orb — Liquid Glass refracting the rippling water behind it
+                // The orb — glass sphere refracting the rippling water
                 LiquidGlassOrb()
                     .frame(width: 220, height: 220)
             }
