@@ -101,7 +101,10 @@ private struct MuteToggle: View {
                           : Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.85)
                     )
             }
-            .frame(minWidth: 44, minHeight: 44)
+            // Visual circle stays at 38pt; the outer frame just extends the
+            // hit-test area to the WCAG 44pt minimum without showing as glass.
+            .frame(width: 38, height: 38)
+            .frame(width: 44, height: 44)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)

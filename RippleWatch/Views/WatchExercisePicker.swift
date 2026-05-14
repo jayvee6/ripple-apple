@@ -53,8 +53,9 @@ private struct WatchMuteToggle: View {
                           : Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.85)
                     )
             }
-            // Watch tap targets: keep visual at 26pt but extend the hit area
-            .frame(minWidth: 32, minHeight: 32)
+            // Visual stays at 26pt; outer frame extends the hit area only.
+            .frame(width: 26, height: 26)
+            .frame(width: 32, height: 32)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
