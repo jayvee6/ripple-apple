@@ -44,7 +44,7 @@ struct RootView: View {
             SessionView(config: config) {
                 state.finishSession(config)
             }
-        case .outro(let config, let affirmation):
+        case .outro(_, let affirmation):
             AffirmationView(affirmation: affirmation) {
                 completeOutro()
             }
