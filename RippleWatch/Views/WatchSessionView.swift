@@ -24,6 +24,7 @@ struct WatchSessionView: View {
 
     private let bowls = BowlAudioEngine()
     private let haptics = HapticsManager()
+    private let runtime = ExtendedRuntime()
 
     private static let scaleEmpty: CGFloat = 0.55
     private static let scaleFull: CGFloat = 1.0
@@ -81,12 +82,17 @@ struct WatchSessionView: View {
                 Spacer()
             }
         }
-        .onAppear { startSession() }
+        .onAppear {
+            startSession()
+            // Keep the watch awake through wrist-down for the whole session.
+            runtime.start()
+        }
         .onDisappear {
             sessionTask?.cancel()
             countdownTask?.cancel()
             bowls.stop()
             haptics.stop()
+            runtime.stop()
         }
     }
 

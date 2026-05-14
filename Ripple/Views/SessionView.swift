@@ -10,6 +10,7 @@ struct SessionView: View {
 
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var currentPhase: BreathPhase?
     @State private var cycleIndex: Int = 0
     @State private var stoneScale: CGFloat = 1.0
@@ -102,12 +103,29 @@ struct SessionView: View {
             }
             .opacity(hudOpacity)
         }
-        .onAppear { startSession() }
+        .onAppear {
+            startSession()
+            // Keep the device awake for the duration of the session so the
+            // phone doesn't auto-lock mid-exhale. Restored on disappear AND
+            // when the app backgrounds, so we never leave it disabled.
+            UIApplication.shared.isIdleTimerDisabled = true
+        }
         .onDisappear {
             sessionTask?.cancel()
             countdownTask?.cancel()
             bowls.stop()
             haptics.stop()
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Defensive — if the user backgrounds the app mid-session, drop
+            // the idle-timer override so we're not still locked out the next
+            // time iOS evaluates auto-lock.
+            if newPhase != .active {
+                UIApplication.shared.isIdleTimerDisabled = false
+            } else {
+                UIApplication.shared.isIdleTimerDisabled = true
+            }
         }
     }
 
