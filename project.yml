@@ -11,7 +11,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "0.1"
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "4"
     SWIFT_VERSION: "5.9"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
@@ -32,11 +32,13 @@ targets:
           - "Info.plist"
     dependencies:
       - package: RippleCore
-      # NOTE: watch target embedding is intentionally not declared here at this
-      # phase. For App Store submission we'll re-add `target: RippleWatch` with
-      # `embed: true` + a custom copyFiles build phase that places the watch
-      # bundle in $(CONTENTS_FOLDER_PATH)/Watch/. For development, each target
-      # builds independently and pairs at runtime via WatchConnectivity.
+      # Watch app embedded into the iOS app bundle for paired distribution
+      # via TestFlight / App Store. xcodegen places it at the correct
+      # $(CONTENTS_FOLDER_PATH)/Watch/ destination automatically when
+      # embedding a watchOS application target.
+      - target: RippleWatch
+        embed: true
+        codeSign: true
     info:
       path: Ripple/Info.plist
       properties:
@@ -100,7 +102,6 @@ targets:
         WKApplication: true
         WKCompanionAppBundleIdentifier: dev.studiojoe.ripple
         WKRunsIndependentlyOfCompanionApp: true
-        WKWatchKitApp: false
         UIUserInterfaceStyle: Dark
     entitlements:
       path: RippleWatch/RippleWatch.entitlements

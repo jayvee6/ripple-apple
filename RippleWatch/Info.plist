@@ -34,7 +34,5 @@
 	<string>dev.studiojoe.ripple</string>
 	<key>WKRunsIndependentlyOfCompanionApp</key>
 	<true/>
-	<key>WKWatchKitApp</key>
-	<false/>
 </dict>
 </plist>
