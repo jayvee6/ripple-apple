@@ -176,16 +176,21 @@ bg = Image.alpha_composite(bg, black)
 # 6. Downsample to final size — Lanczos for crisp small-feature retention
 final = bg.resize((FINAL_SIZE, FINAL_SIZE), Image.Resampling.LANCZOS)
 
+# 7. Flatten alpha — App Store Connect rejects icons with transparency.
+#    Composite onto the deep-bg color so the corners are opaque navy.
+opaque = Image.new("RGB", (FINAL_SIZE, FINAL_SIZE), DEEP_BG[:3])
+opaque.paste(final, (0, 0), final)
+
 # Save into AppIcon.appiconset for iOS
 out_path = "../Ripple/Assets.xcassets/AppIcon.appiconset/Icon-1024.png"
-final.save(out_path, "PNG", optimize=True)
+opaque.save(out_path, "PNG", optimize=True)
 print(f"saved → {out_path}")
 
 # Also save a preview copy for the design folder
-final.save("ripple-icon-1024.png", "PNG", optimize=True)
+opaque.save("ripple-icon-1024.png", "PNG", optimize=True)
 print("preview → design/ripple-icon-1024.png")
 
 # Save scaled-down preview at 180px to verify small-size readability
-final.resize((180, 180), Image.Resampling.LANCZOS).save("ripple-icon-180.png", "PNG", optimize=True)
-final.resize((58, 58), Image.Resampling.LANCZOS).save("ripple-icon-58.png", "PNG", optimize=True)
+opaque.resize((180, 180), Image.Resampling.LANCZOS).save("ripple-icon-180.png", "PNG", optimize=True)
+opaque.resize((58, 58), Image.Resampling.LANCZOS).save("ripple-icon-58.png", "PNG", optimize=True)
 print("small previews → 180px + 58px (Settings size)")
