@@ -93,17 +93,22 @@ private struct MuteToggle: View {
                 Circle()
                     .fill(.ultraThinMaterial)
                     .overlay(Circle().stroke(Color.white.opacity(0.10), lineWidth: 0.5))
+                // Fixed point size — icon-only chrome should NOT scale with
+                // Dynamic Type the way body text does. Otherwise at AX5 the
+                // glyph balloons past the 38pt frame and overflows.
                 Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(.system(.callout, design: .default, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(
                         isMuted
                           ? Color.white.opacity(0.45)
                           : Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.85)
                     )
             }
-            // Visual circle stays at 38pt; the outer frame just extends the
-            // hit-test area to the WCAG 44pt minimum without showing as glass.
+            // Visual stays at 38pt and clips anything that overflows.
+            // The outer frame extends the hit area to WCAG 44pt without
+            // expanding the visible glass.
             .frame(width: 38, height: 38)
+            .clipShape(Circle())
             .frame(width: 44, height: 44)
             .contentShape(Circle())
         }

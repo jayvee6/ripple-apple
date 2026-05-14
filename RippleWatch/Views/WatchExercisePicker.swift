@@ -45,16 +45,18 @@ private struct WatchMuteToggle: View {
         } label: {
             ZStack {
                 Circle().fill(Color.white.opacity(0.06))
+                // Fixed point size — icon chrome shouldn't scale with body text
                 Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(.system(.caption2, design: .default, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(
                         isMuted
                           ? Color.white.opacity(0.50)
                           : Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.85)
                     )
             }
-            // Visual stays at 26pt; outer frame extends the hit area only.
+            // Visual 26pt, clips overflow, outer hit area 32pt.
             .frame(width: 26, height: 26)
+            .clipShape(Circle())
             .frame(width: 32, height: 32)
             .contentShape(Circle())
         }
