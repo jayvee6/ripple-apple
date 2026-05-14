@@ -9,6 +9,7 @@ struct SessionView: View {
     let onComplete: () -> Void
 
     @Environment(AppState.self) private var appState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentPhase: BreathPhase?
     @State private var cycleIndex: Int = 0
     @State private var stoneScale: CGFloat = 1.0
@@ -49,24 +50,27 @@ struct SessionView: View {
                 LiquidGlassOrb()
                     .frame(width: 220, height: 220)
             }
+            .accessibilityHidden(true) // decorative; HUD text + announcements convey state
             .scaleEffect(stoneScale)
             .opacity(stoneOpacity)
             .animation(.easeInOut(duration: 0.6), value: stoneOpacity)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
 
-            // HUD
+            // HUD — also the accessibility surface for the session. The
+            // central element is announced as a live region whenever the
+            // phase or countdown changes, so VoiceOver users hear the cue.
             VStack {
                 Spacer().frame(height: 80)
                 VStack(spacing: 18) {
                     Text(currentPhase?.label.uppercased() ?? "")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(.subheadline, design: .default, weight: .medium))
                         .tracking(4.5)
                         .foregroundStyle(Color.white.opacity(0.78))
                         .opacity(phaseLabelOpacity)
                         .animation(.easeInOut(duration: 0.3), value: phaseLabelOpacity)
                     Text("\(countdown)")
-                        .font(.system(size: 64, weight: .thin).monospacedDigit())
+                        .font(.system(.largeTitle, design: .default, weight: .thin).monospacedDigit())
                         .foregroundStyle(Color.white.opacity(0.85))
                         .shadow(color: Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.45), radius: 12)
                 }
@@ -74,13 +78,16 @@ struct SessionView: View {
             }
             .opacity(hudOpacity)
             .animation(.easeInOut(duration: 0.4), value: hudOpacity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(hudAccessibilityLabel)
+            .accessibilityAddTraits(.updatesFrequently)
 
             // Cycle indicator
             VStack {
                 HStack {
                     Spacer()
                     Text("CYCLE \(cycleIndex + 1) OF \(config.cycles)")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(.caption, design: .default, weight: .semibold))
                         .tracking(3.1)
                         .foregroundStyle(Color.white.opacity(0.5))
                         .padding(.horizontal, 14)
@@ -89,6 +96,7 @@ struct SessionView: View {
                         .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 0.5))
                         .padding(.top, 24)
                         .padding(.trailing, 32)
+                        .accessibilityLabel("Cycle \(cycleIndex + 1) of \(config.cycles)")
                 }
                 Spacer()
             }
@@ -101,6 +109,18 @@ struct SessionView: View {
             bowls.stop()
             haptics.stop()
         }
+    }
+
+    // MARK: - Accessibility
+
+    /// Constructed label for the central HUD; updates whenever currentPhase
+    /// or cycleIndex changes. VoiceOver re-reads it on update because the
+    /// element has the `.updatesFrequently` trait.
+    private var hudAccessibilityLabel: String {
+        guard let phase = currentPhase else {
+            return "Breathing session starting."
+        }
+        return "\(phase.label). Cycle \(cycleIndex + 1) of \(config.cycles)."
     }
 
     // MARK: - Pulse intensity per phase
@@ -193,6 +213,14 @@ struct SessionView: View {
         appState.pulseTrigger += 1
         appState.pulseIntensity = pulseIntensity
 
+        // VoiceOver announcement — call out the new phase explicitly. The
+        // .updatesFrequently HUD will also re-read its label, but a direct
+        // announcement gives the most reliable cue at the moment of strike.
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: "\(phase.label) for \(Int(phase.duration.rounded())) seconds"
+        )
+
         // Phase label flash
         phaseLabelOpacity = 0
         withAnimation(.easeInOut(duration: 0.3)) { phaseLabelOpacity = 0 }
@@ -203,30 +231,39 @@ struct SessionView: View {
             }
         }
 
-        // Drive the stone/halo per phase
-        switch phase.kind {
-        case .inhale:
-            withAnimation(.easeInOut(duration: phase.duration)) {
-                stoneScale = Self.stoneFull
-                haloOpacity = 0.85
-            }
-        case .inhaleTop:
-            withAnimation(.easeOut(duration: phase.duration)) {
-                stoneScale = Self.stoneOverFull
-                haloOpacity = 1.0
-            }
-        case .holdFull:
-            // Subtle jitter — sequence of small scale changes via Task
-            jitter(around: Self.stoneFull, duration: phase.duration)
-        case .holdEmpty:
-            withAnimation(.easeOut(duration: 0.4)) {
+        // Drive the stone/halo per phase. Reduce Motion: skip the scale
+        // tween entirely (stay at stoneBase) and just crossfade the halo —
+        // the chime, haptic, and announcement still convey the phase.
+        if reduceMotion {
+            withAnimation(.easeInOut(duration: 0.3)) {
                 stoneScale = Self.stoneBase
-                haloOpacity = 0
+                haloOpacity = (phase.kind == .holdEmpty || phase.kind == .exhale) ? 0 : 0.85
             }
-        case .exhale:
-            withAnimation(.easeInOut(duration: phase.duration)) {
-                stoneScale = Self.stoneBase
-                haloOpacity = 0
+        } else {
+            switch phase.kind {
+            case .inhale:
+                withAnimation(.easeInOut(duration: phase.duration)) {
+                    stoneScale = Self.stoneFull
+                    haloOpacity = 0.85
+                }
+            case .inhaleTop:
+                withAnimation(.easeOut(duration: phase.duration)) {
+                    stoneScale = Self.stoneOverFull
+                    haloOpacity = 1.0
+                }
+            case .holdFull:
+                // Subtle jitter — sequence of small scale changes via Task
+                jitter(around: Self.stoneFull, duration: phase.duration)
+            case .holdEmpty:
+                withAnimation(.easeOut(duration: 0.4)) {
+                    stoneScale = Self.stoneBase
+                    haloOpacity = 0
+                }
+            case .exhale:
+                withAnimation(.easeInOut(duration: phase.duration)) {
+                    stoneScale = Self.stoneBase
+                    haloOpacity = 0
+                }
             }
         }
 

@@ -6,23 +6,28 @@ import RippleCore
 /// so we can fade-to-black between session and picker without a snap.
 struct RootView: View {
     @State private var state = AppState()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
-            // 1. The water — persistent across all screens
+            // 1. The water — persistent across all screens. Pure decoration:
+            //    the actual phase state is conveyed via HUD + announcements.
             MetalWaterView(pulseTrigger: state.pulseTrigger, pulseIntensity: state.pulseIntensity)
                 .ignoresSafeArea()
+                .accessibilityHidden(true)
 
             // 2. The current screen
             currentScreen
                 .id(screenIdentity)
                 .transition(.opacity)
 
-            // 3. Curtain overlay — used for the outro fade-to-black-and-return cycle
+            // 3. Curtain overlay — decorative; the outro view handles its own
+            //    accessibility announcement before the curtain falls.
             Color.black
                 .ignoresSafeArea()
                 .opacity(state.curtainOpacity)
                 .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
         .background(Color(red: 0.020, green: 0.035, blue: 0.072))
         .environment(state)
@@ -59,12 +64,15 @@ struct RootView: View {
     private func completeOutro() {
         // Step 1: snap to picker UNDER the now-opaque black curtain
         state.returnToPicker()
-        // Step 2: slowly retract the curtain over 5s to reveal the picker
+        // Step 2: retract the curtain. Reduce Motion: instant.
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 800_000_000)
-            withAnimation(.easeInOut(duration: 5.0)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 5.0)) {
                 state.curtainOpacity = 0.0
             }
+            // Announce that we're back on the picker so VoiceOver focus
+            // moves to the new screen content.
+            UIAccessibility.post(notification: .screenChanged, argument: nil)
         }
     }
 }

@@ -12,6 +12,7 @@ struct WatchSessionView: View {
     let onComplete: () -> Void
 
     @Environment(WatchAppState.self) private var appState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentPhase: BreathPhase?
     @State private var cycleIndex: Int = 0
     @State private var circleScale: CGFloat = 0.55
@@ -29,7 +30,8 @@ struct WatchSessionView: View {
 
     var body: some View {
         ZStack {
-            // The breathing circle
+            // The breathing circle — purely decorative on watch; phase + count
+            // are read out via the central HUD label.
             Circle()
                 .fill(
                     RadialGradient(
@@ -49,27 +51,32 @@ struct WatchSessionView: View {
                 )
                 .frame(width: 140, height: 140)
                 .scaleEffect(circleScale)
+                .accessibilityHidden(true)
 
             VStack(spacing: 2) {
                 Text(currentPhase?.label ?? "")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(.caption, design: .default, weight: .medium))
                     .tracking(2.4)
                     .textCase(.uppercase)
                     .foregroundStyle(Color.white.opacity(0.78))
                 Text("\(countdown)")
-                    .font(.system(size: 28, weight: .thin).monospacedDigit())
+                    .font(.system(.title, design: .default, weight: .thin).monospacedDigit())
                     .foregroundStyle(Color.white.opacity(0.92))
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(hudAccessibilityLabel)
+            .accessibilityAddTraits(.updatesFrequently)
 
             VStack {
                 HStack {
                     Spacer()
                     Text("\(cycleIndex + 1)/\(config.cycles)")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(.caption2, design: .default, weight: .semibold))
                         .tracking(1.6)
                         .foregroundStyle(Color.white.opacity(0.5))
                         .padding(.trailing, 6)
                         .padding(.top, 4)
+                        .accessibilityLabel("Cycle \(cycleIndex + 1) of \(config.cycles)")
                 }
                 Spacer()
             }
@@ -81,6 +88,12 @@ struct WatchSessionView: View {
             bowls.stop()
             haptics.stop()
         }
+    }
+
+    /// VoiceOver label for the central HUD on watch — same pattern as iOS.
+    private var hudAccessibilityLabel: String {
+        guard let phase = currentPhase else { return "Breathing session starting." }
+        return "\(phase.label). Cycle \(cycleIndex + 1) of \(config.cycles)."
     }
 
     private func startSession() {
@@ -159,33 +172,40 @@ struct WatchSessionView: View {
         WKInterfaceDevice.current().play(wkType)
         #endif
 
-        // Drive the circle scale per phase
-        switch phase.kind {
-        case .inhale:
-            withAnimation(.easeInOut(duration: phase.duration)) {
-                circleScale = Self.scaleFull
-                glowOpacity = 1.0
-            }
-        case .inhaleTop:
-            withAnimation(.easeOut(duration: phase.duration)) {
-                circleScale = Self.scaleFull * 1.04
-                glowOpacity = 1.0
-            }
-        case .holdFull:
-            // Hold scale; no scale animation but the circle slightly breathes
-            withAnimation(.easeInOut(duration: 0.6)) {
-                circleScale = Self.scaleFull
-                glowOpacity = 0.95
-            }
-        case .holdEmpty:
-            withAnimation(.easeOut(duration: 0.3)) {
+        // Drive the circle scale per phase. Reduce Motion: skip scale tween;
+        // the haptic + bowl still convey the phase change.
+        if reduceMotion {
+            withAnimation(.easeInOut(duration: 0.3)) {
                 circleScale = Self.scaleEmpty
-                glowOpacity = 0.30
+                glowOpacity = (phase.kind == .holdEmpty || phase.kind == .exhale) ? 0.30 : 1.0
             }
-        case .exhale:
-            withAnimation(.easeInOut(duration: phase.duration)) {
-                circleScale = Self.scaleEmpty
-                glowOpacity = 0.30
+        } else {
+            switch phase.kind {
+            case .inhale:
+                withAnimation(.easeInOut(duration: phase.duration)) {
+                    circleScale = Self.scaleFull
+                    glowOpacity = 1.0
+                }
+            case .inhaleTop:
+                withAnimation(.easeOut(duration: phase.duration)) {
+                    circleScale = Self.scaleFull * 1.04
+                    glowOpacity = 1.0
+                }
+            case .holdFull:
+                withAnimation(.easeInOut(duration: 0.6)) {
+                    circleScale = Self.scaleFull
+                    glowOpacity = 0.95
+                }
+            case .holdEmpty:
+                withAnimation(.easeOut(duration: 0.3)) {
+                    circleScale = Self.scaleEmpty
+                    glowOpacity = 0.30
+                }
+            case .exhale:
+                withAnimation(.easeInOut(duration: phase.duration)) {
+                    circleScale = Self.scaleEmpty
+                    glowOpacity = 0.30
+                }
             }
         }
 

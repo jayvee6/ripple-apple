@@ -62,6 +62,17 @@ public enum BreathExercise: String, Sendable, CaseIterable, Identifiable {
         }
     }
 
+    /// Human-readable description for VoiceOver — spelled out so screen readers
+    /// don't stumble over the punctuation in "4-7-8" or "5.5 · 5.5".
+    public var accessibilityDescription: String {
+        switch self {
+        case .fourSevenEight: return "Four seven eight breathing. Four-second inhale, seven-second hold, eight-second exhale."
+        case .box:            return "Box breathing. Four-second inhale, hold, exhale, and rest."
+        case .coherent:       return "Coherent breathing. Five and a half second inhale and exhale."
+        case .sigh:           return "Physiological sigh. Double inhale and long exhale."
+        }
+    }
+
     /// Default cycle count. Tuned per exercise so a default session feels right.
     public var defaultCycles: Int {
         switch self {

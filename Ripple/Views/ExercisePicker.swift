@@ -37,13 +37,15 @@ struct ExercisePicker: View {
             VStack(spacing: 32) {
                 VStack(spacing: 8) {
                     Text("breathe")
-                        .font(.system(size: 38, weight: .ultraLight))
+                        .font(.system(.largeTitle, design: .default, weight: .ultraLight))
                         .tracking(2)
                         .foregroundStyle(Color.white.opacity(0.95))
+                        .accessibilityAddTraits(.isHeader)
                     Text("CHOOSE YOUR BREATH")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(.caption, design: .default, weight: .semibold))
                         .tracking(5.4)
                         .foregroundStyle(Color.white.opacity(0.45))
+                        .accessibilityHidden(true) // decorative tagline; heading already announced
                 }
 
                 LazyVGrid(
@@ -79,28 +81,33 @@ struct ExercisePicker: View {
 
 private struct MuteToggle: View {
     @Binding var isMuted: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button {
-            withAnimation(.easeOut(duration: 0.18)) {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
                 isMuted.toggle()
             }
         } label: {
-            Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(
-                    isMuted
-                      ? Color.white.opacity(0.45)
-                      : Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.85)
-                )
-                .frame(width: 38, height: 38)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(
-                    Circle().stroke(Color.white.opacity(0.10), lineWidth: 0.5)
-                )
+            ZStack {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Circle().stroke(Color.white.opacity(0.10), lineWidth: 0.5))
+                Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.system(.callout, design: .default, weight: .medium))
+                    .foregroundStyle(
+                        isMuted
+                          ? Color.white.opacity(0.45)
+                          : Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.85)
+                    )
+            }
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isMuted ? "Unmute bowl chimes" : "Mute bowl chimes")
+        .accessibilityLabel(isMuted ? "Bowl chimes muted" : "Bowl chimes on")
+        .accessibilityHint("Double tap to \(isMuted ? "unmute" : "mute") the breathing session audio. Haptics remain on either way.")
+        .accessibilityAddTraits(.isButton)
     }
 }
 
@@ -108,20 +115,21 @@ private struct ExerciseCard: View {
     let exercise: BreathExercise
     let action: () -> Void
     @State private var isPressed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(exercise.displayName)
-                    .font(.system(size: 22, weight: .light))
+                    .font(.system(.title2, design: .default, weight: .light))
                     .foregroundStyle(Color.white.opacity(0.95))
                 Text(exercise.patternLine.uppercased())
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(.caption, design: .default, weight: .medium))
                     .tracking(2.4)
                     .foregroundStyle(Color.white.opacity(0.55))
                 Spacer().frame(height: 8)
                 Text(exercise.purpose.uppercased())
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(.caption2, design: .default, weight: .semibold))
                     .tracking(2.4)
                     .foregroundStyle(Color(red: 0.471, green: 0.765, blue: 0.843).opacity(0.75))
             }
@@ -142,7 +150,7 @@ private struct ExerciseCard: View {
                     )
             )
             .shadow(color: .black.opacity(isPressed ? 0.10 : 0.18), radius: isPressed ? 4 : 8, x: 0, y: isPressed ? 2 : 4)
-            .scaleEffect(isPressed ? 0.985 : 1.0)
+            .scaleEffect(reduceMotion ? 1.0 : (isPressed ? 0.985 : 1.0))
             .animation(.easeOut(duration: 0.15), value: isPressed)
         }
         .buttonStyle(.plain)
@@ -151,6 +159,12 @@ private struct ExerciseCard: View {
                 .onChanged { _ in isPressed = true }
                 .onEnded { _ in isPressed = false }
         )
+        // VoiceOver: combine the three text rows into one element with a
+        // human-readable label + hint about what tap does.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(exercise.displayName). \(exercise.accessibilityDescription) Best for \(exercise.purpose.lowercased()).")
+        .accessibilityHint("Starts the breathing session.")
+        .accessibilityAddTraits(.isButton)
     }
 }
 
