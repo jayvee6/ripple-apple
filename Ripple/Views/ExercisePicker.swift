@@ -50,25 +50,26 @@ struct ExercisePicker: View {
                         .accessibilityHidden(true) // decorative tagline; heading already announced
                 }
 
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(minimum: 140, maximum: 240), spacing: 14),
-                        GridItem(.flexible(minimum: 140, maximum: 240), spacing: 14),
-                    ],
-                    spacing: 14
-                ) {
-                    ForEach(BreathExercise.allCases) { exercise in
-                        ExerciseCard(exercise: exercise) {
-                            onPick(exercise)
+                VStack(spacing: 14) {
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(minimum: 140, maximum: 240), spacing: 14),
+                            GridItem(.flexible(minimum: 140, maximum: 240), spacing: 14),
+                        ],
+                        spacing: 14
+                    ) {
+                        ForEach(BreathExercise.allCases) { exercise in
+                            ExerciseCard(exercise: exercise) {
+                                onPick(exercise)
+                            }
                         }
                     }
-                    // Fifth card — opens the custom-rhythm editor instead of
-                    // starting immediately. Spans both columns so it reads
-                    // as a distinct "build your own" affordance.
+                    // Custom lives on its own full-width row below the grid —
+                    // a distinct "build your own" affordance. (LazyVGrid has
+                    // no column-span; this is the correct way to span it.)
                     CustomCard(pattern: appState.customPattern) {
                         showingCustomSheet = true
                     }
-                    .gridCellColumns(2)
                 }
                 .frame(maxWidth: 500)
                 .padding(.horizontal, 20)

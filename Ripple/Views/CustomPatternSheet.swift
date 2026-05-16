@@ -20,10 +20,13 @@ struct CustomCard: View {
                     Text("Custom")
                         .font(.system(.title2, design: .default, weight: .light))
                         .foregroundStyle(Color.white.opacity(0.95))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     Text(pattern.patternLine.uppercased())
                         .font(.system(.caption, design: .default, weight: .medium))
                         .tracking(2.4)
                         .foregroundStyle(Color.white.opacity(0.55))
+                        .lineLimit(1)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
