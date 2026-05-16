@@ -10,6 +10,8 @@ import WatchKit
 struct WatchSessionView: View {
     let config: SessionConfig
     let onComplete: () -> Void
+    /// Early bail — wrong exercise, etc. No outro, no HealthKit log.
+    let onExit: () -> Void
 
     @Environment(WatchAppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -70,7 +72,22 @@ struct WatchSessionView: View {
 
             VStack {
                 HStack {
+                    Button {
+                        exitEarly()
+                    } label: {
+                        Image(systemName: "chevron.backward")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.55))
+                            .frame(width: 28, height: 28)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 2)
+                    .accessibilityLabel("Exit breathing session")
+                    .accessibilityHint("Returns to the exercise picker.")
+
                     Spacer()
+
                     Text("\(cycleIndex + 1)/\(config.cycles)")
                         .font(.system(.caption2, design: .default, weight: .semibold))
                         .tracking(1.6)
@@ -94,6 +111,16 @@ struct WatchSessionView: View {
             haptics.stop()
             runtime.stop()
         }
+    }
+
+    /// User bailed — tear down without outro or HealthKit log.
+    private func exitEarly() {
+        sessionTask?.cancel()
+        countdownTask?.cancel()
+        bowls.stop()
+        haptics.stop()
+        runtime.stop()
+        onExit()
     }
 
     /// VoiceOver label for the central HUD on watch — same pattern as iOS.

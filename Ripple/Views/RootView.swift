@@ -43,6 +43,9 @@ struct RootView: View {
         case .session(let config):
             SessionView(config: config) {
                 state.finishSession(config)
+            } onExit: {
+                // Straight back to the picker — no outro, no HealthKit log
+                state.returnToPicker()
             }
         case .outro(_, let affirmation):
             AffirmationView(affirmation: affirmation) {

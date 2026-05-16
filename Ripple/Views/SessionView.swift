@@ -7,6 +7,9 @@ import RippleCore
 struct SessionView: View {
     let config: SessionConfig
     let onComplete: () -> Void
+    /// Called when the user bails out early (wrong exercise, etc.). Skips
+    /// the affirmation outro and the HealthKit log — they didn't finish.
+    let onExit: () -> Void
 
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -83,10 +86,35 @@ struct SessionView: View {
             .accessibilityLabel(hudAccessibilityLabel)
             .accessibilityAddTraits(.updatesFrequently)
 
-            // Cycle indicator
+            // Top bar — back affordance (left) + cycle indicator (right)
             VStack {
-                HStack {
+                HStack(alignment: .top) {
+                    // Exit early. Subtle until you look for it.
+                    Button {
+                        exitEarly()
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .overlay(Circle().stroke(Color.white.opacity(0.10), lineWidth: 0.5))
+                            Image(systemName: "chevron.backward")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Color.white.opacity(0.6))
+                        }
+                        .frame(width: 38, height: 38)
+                        .clipShape(Circle())
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 21)
+                    .padding(.leading, 26)
+                    .accessibilityLabel("Exit breathing session")
+                    .accessibilityHint("Returns to the exercise picker without finishing.")
+                    .accessibilityAddTraits(.isButton)
+
                     Spacer()
+
                     Text("CYCLE \(cycleIndex + 1) OF \(config.cycles)")
                         .font(.system(.caption, design: .default, weight: .semibold))
                         .tracking(3.1)
@@ -127,6 +155,20 @@ struct SessionView: View {
                 UIApplication.shared.isIdleTimerDisabled = true
             }
         }
+    }
+
+    // MARK: - Early exit
+
+    /// User bailed (wrong exercise, changed their mind). Cancel everything,
+    /// release the wake lock, and hand control back without logging a
+    /// mindful session or running the affirmation outro.
+    private func exitEarly() {
+        sessionTask?.cancel()
+        countdownTask?.cancel()
+        bowls.stop()
+        haptics.stop()
+        UIApplication.shared.isIdleTimerDisabled = false
+        onExit()
     }
 
     // MARK: - Accessibility
@@ -323,5 +365,6 @@ struct SessionView: View {
 }
 
 #Preview {
-    SessionView(config: SessionConfig(.sigh)) { }
+    SessionView(config: SessionConfig(.sigh), onComplete: { }, onExit: { })
+        .environment(AppState())
 }

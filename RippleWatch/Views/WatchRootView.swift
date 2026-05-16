@@ -27,6 +27,8 @@ struct WatchRootView: View {
             case .session(let config):
                 WatchSessionView(config: config) {
                     state.finishSession()
+                } onExit: {
+                    state.returnToPicker()
                 }
             case .outro(let affirmation):
                 WatchAffirmationView(affirmation: affirmation) {
