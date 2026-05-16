@@ -38,7 +38,7 @@ struct ExercisePicker: View {
 
             VStack(spacing: 32) {
                 VStack(spacing: 8) {
-                    Text("breathe")
+                    Text("ripple")
                         .font(.system(.largeTitle, design: .default, weight: .ultraLight))
                         .tracking(2)
                         .foregroundStyle(Color.white.opacity(0.95))

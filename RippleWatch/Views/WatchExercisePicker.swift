@@ -12,7 +12,7 @@ struct WatchExercisePicker: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .center) {
-                    Text("BREATHE")
+                    Text("RIPPLE")
                         .font(.system(.caption2, design: .default, weight: .semibold))
                         .tracking(3.2)
                         .foregroundStyle(Color.white.opacity(0.45))
