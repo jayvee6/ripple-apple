@@ -53,9 +53,36 @@ public actor Preferences {
         defaults.set(map, forKey: Keys.reactions)
     }
 
+    // MARK: - Custom breath pattern
+
+    /// The user's saved custom rhythm. Defaults to BreathPattern.default
+    /// (4-4-6, attainable hold) the first time the editor is opened.
+    public func customPattern() -> BreathPattern {
+        guard let data = defaults.data(forKey: Keys.customPattern),
+              let pattern = try? JSONDecoder().decode(BreathPattern.self, from: data)
+        else { return .default }
+        return pattern
+    }
+
+    public func setCustomPattern(_ pattern: BreathPattern) {
+        guard let data = try? JSONEncoder().encode(pattern) else { return }
+        defaults.set(data, forKey: Keys.customPattern)
+    }
+
+    public func customCycles() -> Int {
+        let v = defaults.integer(forKey: Keys.customCycles)
+        return v > 0 ? v : 4
+    }
+
+    public func setCustomCycles(_ n: Int) {
+        defaults.set(min(max(n, 1), 10), forKey: Keys.customCycles)
+    }
+
     private enum Keys {
         static let lastExercise = "ripple.lastExercise"
         static let sessionsCompleted = "ripple.sessionsCompleted"
         static let reactions = "ripple.reactions"
+        static let customPattern = "ripple.customPattern"
+        static let customCycles = "ripple.customCycles"
     }
 }

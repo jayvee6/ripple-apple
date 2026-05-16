@@ -21,8 +21,14 @@ struct WatchRootView: View {
 
             switch state.screen {
             case .picker:
-                WatchExercisePicker { exercise in
-                    state.startSession(exercise)
+                // NavigationStack so the "Edit custom rhythm" NavigationLink
+                // can push the on-watch editor.
+                NavigationStack {
+                    WatchExercisePicker { exercise in
+                        state.startSession(exercise)
+                    } onPickCustom: {
+                        state.startCustomSession()
+                    }
                 }
             case .session(let config):
                 WatchSessionView(config: config) {

@@ -5,7 +5,9 @@ import RippleCore
 /// viewport, 2×2 grid of exercise cards. Mirrors the web app's selector.
 struct ExercisePicker: View {
     let onPick: (BreathExercise) -> Void
+    let onPickCustom: (BreathPattern, Int) -> Void
     @Environment(AppState.self) private var appState
+    @State private var showingCustomSheet = false
 
     var body: some View {
         @Bindable var appState = appState
@@ -60,9 +62,29 @@ struct ExercisePicker: View {
                             onPick(exercise)
                         }
                     }
+                    // Fifth card — opens the custom-rhythm editor instead of
+                    // starting immediately. Spans both columns so it reads
+                    // as a distinct "build your own" affordance.
+                    CustomCard(pattern: appState.customPattern) {
+                        showingCustomSheet = true
+                    }
+                    .gridCellColumns(2)
                 }
                 .frame(maxWidth: 500)
                 .padding(.horizontal, 20)
+            }
+            .sheet(isPresented: $showingCustomSheet) {
+                CustomPatternSheet(
+                    pattern: appState.customPattern,
+                    cycles: appState.customCycles
+                ) { pattern, cycles in
+                    appState.customPattern = pattern
+                    appState.customCycles = cycles
+                    showingCustomSheet = false
+                    onPickCustom(pattern, cycles)
+                } onCancel: {
+                    showingCustomSheet = false
+                }
             }
 
             // Mute toggle — top-right corner. Subtle, persists across sessions.
@@ -179,7 +201,7 @@ private struct ExerciseCard: View {
 #Preview {
     ZStack {
         Color(red: 0.020, green: 0.035, blue: 0.072).ignoresSafeArea()
-        ExercisePicker { _ in }
+        ExercisePicker(onPick: { _ in }, onPickCustom: { _, _ in })
             .environment(AppState())
     }
 }

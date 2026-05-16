@@ -77,6 +77,45 @@ import Foundation
     #expect(c.totalSeconds == 66)
 }
 
+// MARK: - Custom breath pattern
+
+@Test func customPatternSkipsZeroDurationHolds() {
+    // hold = 0 → no Hold phase; rest = 0 → no Rest phase
+    let p = BreathPattern(inhale: 4, holdFull: 0, exhale: 6, holdEmpty: 0)
+    #expect(p.phases.map(\.kind) == [.inhale, .exhale])
+    #expect(p.cycleDuration == 10)
+    #expect(p.patternLine == "4 · 6")
+}
+
+@Test func customPatternFullBoxStyle() {
+    let p = BreathPattern(inhale: 4, holdFull: 4, exhale: 4, holdEmpty: 4)
+    #expect(p.phases.map(\.kind) == [.inhale, .holdFull, .exhale, .holdEmpty])
+    #expect(p.cycleDuration == 16)
+}
+
+@Test func customPatternClampsToBounds() {
+    let tooBig = BreathPattern(inhale: 999, holdFull: 50, exhale: -3, holdEmpty: 1)
+    #expect(tooBig.inhale == BreathPattern.maxPhase)   // capped at 20
+    #expect(tooBig.holdFull == BreathPattern.maxPhase)
+    #expect(tooBig.exhale == BreathPattern.minActive)  // floored at 1 (active phase)
+}
+
+@Test func customSessionConfigUsesPatternPhases() {
+    let p = BreathPattern(inhale: 3, holdFull: 2, exhale: 7, holdEmpty: 0)
+    let c = SessionConfig(custom: p, cycles: 3)
+    #expect(c.isCustom)
+    #expect(c.displayName == "Custom")
+    #expect(c.phases.map(\.duration) == [3, 2, 7])
+    #expect(c.totalSeconds == 36) // (3+2+7) * 3
+}
+
+@Test func customPatternCodableRoundTrips() throws {
+    let p = BreathPattern(inhale: 5, holdFull: 3, exhale: 8, holdEmpty: 2)
+    let data = try JSONEncoder().encode(p)
+    let back = try JSONDecoder().decode(BreathPattern.self, from: data)
+    #expect(back == p)
+}
+
 // MARK: - Affirmations
 
 @Test func affirmationPoolHasTenItems() {

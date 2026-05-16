@@ -26,7 +26,7 @@ public struct PhaseRunner {
                 for cycleIdx in 0..<config.cycles {
                     if Task.isCancelled { break }
                     continuation.yield(PhaseEvent(kind: .cycleBegan, cycleIndex: cycleIdx, phase: nil))
-                    for phase in config.exercise.phases {
+                    for phase in config.phases {
                         if Task.isCancelled { break }
                         continuation.yield(PhaseEvent(kind: .phaseBegan, cycleIndex: cycleIdx, phase: phase))
                         try? await Task.sleep(nanoseconds: UInt64(phase.duration * 1_000_000_000))

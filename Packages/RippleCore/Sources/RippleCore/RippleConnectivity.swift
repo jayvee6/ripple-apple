@@ -79,5 +79,7 @@ extension RippleConnectivity: WCSessionDelegate {
 public enum RippleSyncKey {
     public static let audioMuted = "audioMuted"
     public static let lastExercise = "lastExercise"
+    public static let customPattern = "customPattern"   // JSON-encoded BreathPattern
+    public static let customCycles = "customCycles"
 }
 #endif

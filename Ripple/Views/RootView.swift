@@ -39,6 +39,8 @@ struct RootView: View {
         case .picker:
             ExercisePicker { exercise in
                 state.startSession(exercise)
+            } onPickCustom: { pattern, cycles in
+                state.startCustomSession(pattern, cycles: cycles)
             }
         case .session(let config):
             SessionView(config: config) {
